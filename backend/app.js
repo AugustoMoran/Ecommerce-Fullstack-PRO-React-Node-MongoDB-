@@ -21,6 +21,7 @@ const couponRoutes = require('./src/routes/coupons');
 const uploadRoutes = require('./src/routes/upload');
 const webhookRoutes = require('./src/routes/webhook');
 const bannerRoutes = require('./src/routes/banners');
+const popupRoutes = require('./src/routes/popup');
 
 const app = express();
 
@@ -70,6 +71,7 @@ app.use('/api/coupons', couponRoutes);
 app.use('/api/upload', uploadRoutes);
 app.use('/api/webhook', webhookRoutes);
 app.use('/api/banners', bannerRoutes);
+app.use('/api/popup', popupRoutes);
 
 // Health check
 app.get('/health', (req, res) => {

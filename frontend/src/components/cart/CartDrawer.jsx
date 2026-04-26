@@ -1,15 +1,16 @@
 import React from 'react';
-import { useDispatch, useSelector } from 'react-redux';
+import { useDispatch } from 'react-redux';
 import { HiX, HiOutlineTrash, HiOutlineShoppingBag } from 'react-icons/hi';
 import { Link } from 'react-router-dom';
-import { closeCart, removeItem, updateQuantity, selectCartItems, selectCartTotal, selectCartIsOpen } from '../../features/cart/cartSlice';
+import { closeCart, selectCartIsOpen } from '../../features/cart/cartSlice';
+import { useSelector } from 'react-redux';
+import useCart from '../../hooks/useCart';
 import { formatCurrency } from '../../utils/formatCurrency';
 
 const CartDrawer = () => {
   const dispatch = useDispatch();
-  const items = useSelector(selectCartItems);
-  const total = useSelector(selectCartTotal);
   const isOpen = useSelector(selectCartIsOpen);
+  const { items, total, removeFromCart, updateQuantity, clearCart } = useCart();
 
   return (
     <>
@@ -72,14 +73,14 @@ const CartDrawer = () => {
                       <p className="text-xs text-gray-500 mb-2">{formatCurrency(price)} c/u</p>
                       <div className="flex items-center gap-2">
                         <button
-                          onClick={() => dispatch(updateQuantity({ productoId: id, cantidad: item.cantidad - 1 }))}
+                          onClick={() => updateQuantity(id, item.cantidad - 1)}
                           className="w-6 h-6 rounded-full border border-gray-300 flex items-center justify-center text-sm hover:bg-gray-100"
                         >
                           -
                         </button>
                         <span className="text-sm font-medium w-5 text-center">{item.cantidad}</span>
                         <button
-                          onClick={() => dispatch(updateQuantity({ productoId: id, cantidad: item.cantidad + 1 }))}
+                          onClick={() => updateQuantity(id, item.cantidad + 1)}
                           className="w-6 h-6 rounded-full border border-gray-300 flex items-center justify-center text-sm hover:bg-gray-100"
                         >
                           +
@@ -88,7 +89,7 @@ const CartDrawer = () => {
                     </div>
                     <div className="flex flex-col items-end justify-between">
                       <button
-                        onClick={() => dispatch(removeItem(id))}
+                        onClick={() => removeFromCart(id)}
                         className="text-gray-400 hover:text-red-500 transition-colors p-1"
                       >
                         <HiOutlineTrash size={16} />
@@ -116,6 +117,12 @@ const CartDrawer = () => {
             >
               Finalizar compra
             </Link>
+            <button
+              onClick={() => clearCart()}
+              className="w-full py-2 px-4 rounded-lg border border-red-300 text-red-600 hover:bg-red-50 transition-colors font-medium text-sm"
+            >
+              Vaciar carrito
+            </button>
           </div>
         )}
       </div>

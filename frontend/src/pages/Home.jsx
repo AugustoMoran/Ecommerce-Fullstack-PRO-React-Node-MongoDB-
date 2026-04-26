@@ -9,16 +9,16 @@ import { HiArrowRight } from 'react-icons/hi';
 const CategoryCard = ({ category }) => (
   <Link
     to={`/productos?categoria=${category._id}`}
-    className="card group flex flex-col items-center p-5 hover:border-primary-300 hover:shadow-md transition-all duration-200"
+    className="card group flex flex-col items-center p-5 hover:shadow-xl hover:scale-[1.03] transition-all duration-200"
   >
     {category.imagen ? (
       <img src={category.imagen} alt={category.nombre} className="w-14 h-14 rounded-full object-cover mb-3" />
     ) : (
-      <div className="w-14 h-14 bg-primary-100 rounded-full flex items-center justify-center mb-3">
-        <span className="text-primary-600 font-bold text-xl">{category.nombre[0]}</span>
+      <div className="w-14 h-14 bg-gray-900 rounded-full flex items-center justify-center mb-3">
+        <span className="text-primary-400 font-bold text-xl">{category.nombre[0]}</span>
       </div>
     )}
-    <span className="font-medium text-sm text-center group-hover:text-primary-600 transition-colors">
+    <span className="font-semibold text-sm text-center group-hover:text-gray-600 transition-colors">
       {category.nombre}
     </span>
   </Link>
@@ -54,7 +54,7 @@ const Home = () => {
         <section className="py-8">
           <div className="flex items-center justify-between mb-6">
             <h2 className="text-2xl font-bold text-gray-900">Más vendidos</h2>
-            <Link to="/productos?sort=popular" className="text-primary-600 hover:text-primary-700 text-sm font-medium flex items-center gap-1">
+            <Link to="/productos?sort=popular" className="text-gray-900 hover:text-gray-600 text-sm font-semibold flex items-center gap-1">
               Ver todo <HiArrowRight size={16} />
             </Link>
           </div>
@@ -65,12 +65,12 @@ const Home = () => {
 
         {/* Banner CTA */}
         <section className="py-8">
-          <div className="bg-gradient-to-r from-primary-600 to-primary-800 rounded-3xl p-8 sm:p-12 flex flex-col sm:flex-row items-center justify-between gap-6 text-white">
+          <div className="bg-gray-900 rounded-3xl p-8 sm:p-12 flex flex-col sm:flex-row items-center justify-between gap-6 text-white">
             <div>
               <h2 className="text-2xl sm:text-3xl font-extrabold mb-2">¡Comprá con confianza!</h2>
-              <p className="text-primary-100">Pagá por Mercado Pago o WhatsApp. Envíos a todo el país.</p>
+              <p className="text-gray-400">Pagá por Mercado Pago o WhatsApp. Envíos a todo el país.</p>
             </div>
-            <Link to="/productos" className="bg-white text-primary-700 font-bold px-8 py-3 rounded-full hover:bg-primary-50 transition-all whitespace-nowrap flex-shrink-0">
+            <Link to="/productos" className="bg-primary-400 text-gray-900 font-bold px-8 py-3 rounded-full hover:bg-primary-300 transition-all whitespace-nowrap flex-shrink-0 shadow-lg">
               Ver productos
             </Link>
           </div>
@@ -80,7 +80,7 @@ const Home = () => {
         <section className="py-8 pb-16">
           <div className="flex items-center justify-between mb-6">
             <h2 className="text-2xl font-bold text-gray-900">Novedades</h2>
-            <Link to="/productos?sort=newest" className="text-primary-600 hover:text-primary-700 text-sm font-medium flex items-center gap-1">
+            <Link to="/productos?sort=newest" className="text-gray-900 hover:text-gray-600 text-sm font-semibold flex items-center gap-1">
               Ver todo <HiArrowRight size={16} />
             </Link>
           </div>

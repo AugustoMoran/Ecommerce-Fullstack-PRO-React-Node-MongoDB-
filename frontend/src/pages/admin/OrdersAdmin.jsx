@@ -1,4 +1,5 @@
 import React, { useState } from 'react';
+import { useNavigate } from 'react-router-dom';
 import AdminLayout from '../../components/admin/AdminLayout';
 import { useGetAllOrdersQuery, useUpdateOrderMutation, useFinalizeOrderMutation, useDeleteOrderMutation } from '../../services/ordersApi';
 import { formatCurrency } from '../../utils/formatCurrency';
@@ -15,6 +16,7 @@ const METODO_BADGE = {
 };
 
 const OrdersAdmin = () => {
+  const navigate = useNavigate();
   const [page, setPage] = useState(1);
   const { data, isLoading, isFetching } = useGetAllOrdersQuery({ page, limit: 15 });
   const [updateOrder] = useUpdateOrderMutation();
@@ -38,8 +40,26 @@ const OrdersAdmin = () => {
     if (!window.confirm(confirmMsg)) return;
     setFinalizingId(order._id);
     try {
-      await finalizeOrder({ id: order._id, force }).unwrap();
-      toast.success('Stock descontado correctamente');
+      const result = await finalizeOrder({ id: order._id, force }).unwrap();
+      if (result.agotados?.length > 0) {
+        const nombres = result.agotados.map((p) => p.nombre).join(', ');
+        toast(
+          (t) => (
+            <span>
+              ⚠️ Sin stock: <strong>{nombres}</strong>.{' '}
+              <button
+                className="underline font-medium"
+                onClick={() => { toast.dismiss(t.id); navigate('/admin/productos?sinStock=1'); }}
+              >
+                Ver productos
+              </button>
+            </span>
+          ),
+          { duration: 8000 }
+        );
+      } else {
+        toast.success('Stock descontado correctamente');
+      }
     } catch (err) {
       if (err?.data?.code === 'STOCK_INSUFICIENTE') {
         toast.error(err.data.message, { duration: 4000 });

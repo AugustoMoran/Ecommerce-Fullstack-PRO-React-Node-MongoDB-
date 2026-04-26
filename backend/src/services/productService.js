@@ -2,11 +2,12 @@ const Product = require('../models/Product');
 const Category = require('../models/Category');
 const { cloudinary } = require('../config/cloudinary');
 
-const getProducts = async ({ page = 1, limit = 12, categoria, search, sort }) => {
+const getProducts = async ({ page = 1, limit = 12, categoria, search, sort, sinStock }) => {
   const query = { isActive: true };
 
   if (categoria) query.categoria = categoria;
   if (search) query.$text = { $search: search };
+  if (sinStock === 'true' || sinStock === true) query.stock = { $lte: 0 };
 
   const sortOptions = {
     newest: { createdAt: -1 },

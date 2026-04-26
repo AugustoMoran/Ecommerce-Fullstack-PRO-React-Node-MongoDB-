@@ -4,6 +4,7 @@ import Header from './Header';
 import Footer from './Footer';
 import CartDrawer from '../cart/CartDrawer';
 import FloatingButtons from '../ui/FloatingButtons';
+import WhatsAppPopup from '../ui/WhatsAppPopup';
 
 const Layout = () => {
   return (
@@ -15,6 +16,7 @@ const Layout = () => {
       <Footer />
       <CartDrawer />
       <FloatingButtons />
+      <WhatsAppPopup />
     </div>
   );
 };

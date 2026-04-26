@@ -77,8 +77,8 @@ const dispatchOrder = async (req, res, next) => {
 const finalizeOrder = async (req, res, next) => {
   try {
     const force = req.body?.force === true;
-    const order = await orderService.finalizeOrder(req.params.id, force);
-    res.json({ message: 'Pedido finalizado.', order });
+    const { order, agotados } = await orderService.finalizeOrder(req.params.id, force);
+    res.json({ message: 'Pedido finalizado.', order, agotados });
   } catch (error) {
     if (error.code === 'STOCK_INSUFICIENTE') {
       return res.status(400).json({ message: error.message, code: 'STOCK_INSUFICIENTE' });

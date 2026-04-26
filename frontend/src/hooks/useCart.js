@@ -4,6 +4,7 @@ import {
   addItem,
   removeItem,
   updateQuantity,
+  clearGuestCart,
   toggleCart,
   setItems,
   selectCartItems,
@@ -11,7 +12,12 @@ import {
   selectCartTotal,
   selectCartIsOpen,
 } from '../features/cart/cartSlice';
-import { useAddToCartMutation } from '../services/cartApi';
+import {
+  useAddToCartMutation,
+  useRemoveFromCartMutation,
+  useUpdateCartItemMutation,
+  useClearCartMutation,
+} from '../services/cartApi';
 import { selectCurrentUser } from '../features/auth/authSlice';
 
 const useCart = () => {
@@ -22,6 +28,9 @@ const useCart = () => {
   const total = useSelector(selectCartTotal);
   const isOpen = useSelector(selectCartIsOpen);
   const [addToCartApi] = useAddToCartMutation();
+  const [removeFromCartApi] = useRemoveFromCartMutation();
+  const [updateCartItemApi] = useUpdateCartItemMutation();
+  const [clearCartApi] = useClearCartMutation();
 
   const handleAddToCart = async (producto, cantidad = 1) => {
     if (user) {
@@ -40,12 +49,44 @@ const useCart = () => {
     dispatch(toggleCart());
   };
 
-  const handleRemove = (productoId) => {
-    dispatch(removeItem(productoId));
+  const handleRemove = async (productoId) => {
+    if (user) {
+      try {
+        const result = await removeFromCartApi(productoId).unwrap();
+        if (result?.items) dispatch(setItems(result.items));
+      } catch {
+        dispatch(removeItem(productoId));
+      }
+    } else {
+      dispatch(removeItem(productoId));
+    }
   };
 
-  const handleUpdate = (productoId, cantidad) => {
-    dispatch(updateQuantity({ productoId, cantidad }));
+  const handleUpdate = async (productoId, cantidad) => {
+    if (user) {
+      try {
+        if (cantidad <= 0) {
+          const result = await removeFromCartApi(productoId).unwrap();
+          if (result?.items) dispatch(setItems(result.items));
+        } else {
+          const result = await updateCartItemApi({ productoId, cantidad }).unwrap();
+          if (result?.items) dispatch(setItems(result.items));
+        }
+      } catch {
+        dispatch(updateQuantity({ productoId, cantidad }));
+      }
+    } else {
+      dispatch(updateQuantity({ productoId, cantidad }));
+    }
+  };
+
+  const handleClear = async () => {
+    if (user) {
+      try {
+        await clearCartApi().unwrap();
+      } catch { /* continue to clear local state */ }
+    }
+    dispatch(clearGuestCart());
   };
 
   return {
@@ -56,6 +97,7 @@ const useCart = () => {
     addToCart: handleAddToCart,
     removeFromCart: handleRemove,
     updateQuantity: handleUpdate,
+    clearCart: handleClear,
     toggleCart: () => dispatch(toggleCart()),
   };
 };

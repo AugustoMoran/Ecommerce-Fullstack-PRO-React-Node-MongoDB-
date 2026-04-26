@@ -5,21 +5,29 @@ export default {
     extend: {
       colors: {
         primary: {
-          50: '#eff6ff',
-          100: '#dbeafe',
-          200: '#bfdbfe',
-          300: '#93c5fd',
-          400: '#60a5fa',
-          500: '#3b82f6',
-          600: '#2563eb',
-          700: '#1d4ed8',
-          800: '#1e40af',
-          900: '#1e3a8a',
+          50:  '#FEFCE8',
+          100: '#FEF9C3',
+          200: '#FEF08A',
+          300: '#FDE047',
+          400: '#FACC15', // main yellow — CTA bg
+          500: '#EAB308', // hover
+          600: '#CA8A04', // deep golden
+          700: '#A16207',
+          800: '#854D0E',
+          900: '#1C1917', // near-black
         },
         accent: {
-          400: '#fb923c',
-          500: '#f97316',
-          600: '#ea580c',
+          400: '#FACC15',
+          500: '#EAB308',
+          600: '#CA8A04',
+        },
+        pearl: {
+          DEFAULT: '#F5F3EE', // body bg
+          dark:    '#EAE8E2', // borders / dividers
+        },
+        ink: {
+          DEFAULT: '#0F0F0F', // near-black for text
+          soft:    '#1A1A1A',
         },
       },
       fontFamily: {

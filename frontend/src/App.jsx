@@ -28,6 +28,7 @@ const DeliveryAdmin = lazy(() => import('./pages/admin/DeliveryAdmin'));
 const CouponsAdmin = lazy(() => import('./pages/admin/CouponsAdmin'));
 const CloudinaryAdmin = lazy(() => import('./pages/admin/CloudinaryAdmin'));
 const BannersAdmin = lazy(() => import('./pages/admin/BannersAdmin'));
+const PopupAdmin = lazy(() => import('./pages/admin/PopupAdmin'));
 
 // Guards
 const ProtectedRoute = ({ children }) => {
@@ -92,6 +93,7 @@ const App = () => (
       <Route path="/admin/cupones" element={<AdminRoute><CouponsAdmin /></AdminRoute>} />
       <Route path="/admin/cloudinary" element={<AdminRoute><CloudinaryAdmin /></AdminRoute>} />
       <Route path="/admin/banners" element={<AdminRoute><BannersAdmin /></AdminRoute>} />
+      <Route path="/admin/popup" element={<AdminRoute><PopupAdmin /></AdminRoute>} />
 
       {/* 404 */}
       <Route path="*" element={<NotFound />} />

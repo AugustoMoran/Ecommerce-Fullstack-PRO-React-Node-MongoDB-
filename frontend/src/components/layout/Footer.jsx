@@ -9,14 +9,14 @@ const Footer = () => {
   const storeName = import.meta.env.VITE_STORE_NAME || 'Mi Tienda';
 
   return (
-    <footer className="bg-gray-900 text-gray-300 mt-16">
+    <footer className="bg-[#0D0D0D] text-gray-300 mt-16">
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-12">
         <div className="grid grid-cols-1 md:grid-cols-4 gap-8">
           {/* Brand */}
           <div className="md:col-span-2">
             <div className="flex items-center gap-2 mb-4">
-              <div className="w-8 h-8 bg-primary-600 rounded-lg flex items-center justify-center">
-                <span className="text-white font-bold text-sm">T</span>
+              <div className="w-8 h-8 bg-primary-400 rounded-lg flex items-center justify-center">
+                <span className="text-gray-900 font-bold text-sm">T</span>
               </div>
               <span className="font-bold text-xl text-white">{storeName}</span>
             </div>

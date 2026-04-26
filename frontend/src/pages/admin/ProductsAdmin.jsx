@@ -1,4 +1,5 @@
 import React, { useState } from 'react';
+import { useSearchParams } from 'react-router-dom';
 import AdminLayout from '../../components/admin/AdminLayout';
 import {
   useGetProductsQuery,
@@ -18,10 +19,12 @@ const MAX_IMAGES = 7;
 const EMPTY = { nombre: '', descripcion: '', precio: '', precioOferta: '', stock: '', categoria: '', tags: '' };
 
 const ProductsAdmin = () => {
+  const [searchParams] = useSearchParams();
   const [page, setPage] = useState(1);
   const [search, setSearch] = useState('');
   const [filterCat, setFilterCat] = useState('');
-  const { data, isLoading } = useGetProductsQuery({ page, limit: 12, search: search || undefined, categoria: filterCat || undefined });
+  const sinStock = searchParams.get('sinStock') === '1';
+  const { data, isLoading } = useGetProductsQuery({ page, limit: 12, search: search || undefined, categoria: filterCat || undefined, sinStock: sinStock || undefined });
   const { data: categories = [] } = useGetCategoriesQuery();
   const [deleteProduct] = useDeleteProductMutation();
   const [createProduct] = useCreateProductMutation();

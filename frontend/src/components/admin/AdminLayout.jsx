@@ -12,6 +12,7 @@ import {
   HiOutlinePhotograph,
   HiOutlineCollection,
   HiOutlineHome,
+  HiOutlineChatAlt2,
 } from 'react-icons/hi';
 
 const NAV_ITEMS = [
@@ -22,6 +23,7 @@ const NAV_ITEMS = [
   { to: '/admin/cupones', label: 'Cupones', icon: HiOutlineTicket },
   { to: '/admin/cloudinary', label: 'Almacenamiento', icon: HiOutlinePhotograph },
   { to: '/admin/banners', label: 'Banners', icon: HiOutlineCollection },
+  { to: '/admin/popup', label: 'Popup WhatsApp', icon: HiOutlineChatAlt2 },
 ];
 
 const AdminLayout = ({ children }) => {
@@ -45,7 +47,7 @@ const AdminLayout = ({ children }) => {
                 key={to}
                 to={to}
                 className={`flex items-center gap-3 px-3 py-2 rounded-xl text-sm transition-colors ${
-                  active ? 'bg-primary-600 text-white' : 'text-gray-400 hover:bg-gray-800 hover:text-white'
+                  active ? 'bg-primary-400 text-gray-900 font-semibold' : 'text-gray-400 hover:bg-gray-800 hover:text-white'
                 }`}
               >
                 <Icon size={18} />
@@ -63,7 +65,7 @@ const AdminLayout = ({ children }) => {
       </aside>
 
       {/* Main content */}
-      <main className="flex-1 overflow-auto bg-gray-50 p-6">
+      <main className="flex-1 overflow-auto bg-[#F5F3EE] p-6">
         {children}
       </main>
     </div>

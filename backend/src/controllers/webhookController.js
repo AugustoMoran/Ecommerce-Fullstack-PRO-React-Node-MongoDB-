@@ -1,5 +1,7 @@
 const crypto = require('crypto');
 const Order = require('../models/Order');
+const Product = require('../models/Product');
+const Cart = require('../models/Cart');
 
 const mercadopagoWebhook = async (req, res, next) => {
   try {
@@ -33,11 +35,31 @@ const mercadopagoWebhook = async (req, res, next) => {
       const statusMap = { approved: 'aprobado', pending: 'pendiente', rejected: 'rechazado' };
       const estadoPago = statusMap[status] || 'pendiente';
 
-      await Order.findByIdAndUpdate(externalRef, {
-        estadoPago,
-        mpPaymentId: paymentId,
-        ...(estadoPago === 'aprobado' && { metodoPago: 'mercadopago' }),
-      });
+      const order = await Order.findById(externalRef);
+      if (!order) return res.sendStatus(200);
+
+      const wasAlreadyApproved = order.estadoPago === 'aprobado';
+
+      order.estadoPago = estadoPago;
+      order.mpPaymentId = paymentId;
+      if (estadoPago === 'aprobado') order.metodoPago = 'mercadopago';
+      await order.save();
+
+      if (estadoPago === 'aprobado' && !wasAlreadyApproved && !order.stockDeducido) {
+        // Deduct real stock only when payment is confirmed
+        for (const item of order.items) {
+          await Product.findByIdAndUpdate(item.producto, {
+            $inc: { stock: -item.cantidad, vendidos: item.cantidad },
+          });
+        }
+        order.stockDeducido = true;
+        await order.save();
+
+        // Clear the user's cart in DB
+        if (order.usuario) {
+          await Cart.findOneAndUpdate({ usuario: order.usuario }, { items: [] });
+        }
+      }
     }
 
     res.sendStatus(200);

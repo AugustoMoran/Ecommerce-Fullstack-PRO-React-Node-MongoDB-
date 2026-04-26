@@ -76,20 +76,20 @@ const Checkout = () => {
       const result = await createOrder(payload).unwrap();
 
       if (metodoPago === 'mercadopago' && result.mpData?.initPoint) {
+        // Cart is cleared by the webhook once MP confirms the payment
         window.location.href = result.mpData.initPoint;
         return;
       }
 
       if (metodoPago === 'whatsapp') {
+        // User committed to buy → clear cart immediately
+        if (user) {
+          await clearCartApi().unwrap().catch(() => {});
+        } else {
+          dispatch(clearGuestCart());
+        }
         const waLink = generateWhatsAppLink(items, finalTotal);
         window.open(waLink, '_blank');
-      }
-
-      // Clear cart
-      if (user) {
-        await clearCartApi().unwrap().catch(() => {});
-      } else {
-        dispatch(clearGuestCart());
       }
 
       navigate(`/orden/confirmacion?order=${result.order._id}&status=success`);

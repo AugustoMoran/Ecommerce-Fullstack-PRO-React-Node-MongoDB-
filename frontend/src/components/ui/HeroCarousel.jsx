@@ -16,7 +16,7 @@ const DEFAULT_SLIDES = [
     subtitulo: 'Descubrí los mejores productos al mejor precio',
     ctaTexto: 'Ver productos',
     ctaLink: '/productos',
-    gradient: 'from-blue-900/70 to-transparent',
+    gradient: 'from-gray-950/80 to-transparent',
   },
   {
     _id: '2',
@@ -25,7 +25,7 @@ const DEFAULT_SLIDES = [
     subtitulo: 'Hasta 40% de descuento en productos seleccionados',
     ctaTexto: 'Ver ofertas',
     ctaLink: '/productos?sort=price-asc',
-    gradient: 'from-purple-900/70 to-transparent',
+    gradient: 'from-gray-950/80 to-transparent',
   },
   {
     _id: '3',
@@ -34,7 +34,7 @@ const DEFAULT_SLIDES = [
     subtitulo: 'Rápido, seguro y al mejor precio',
     ctaTexto: 'Comprar ahora',
     ctaLink: '/productos',
-    gradient: 'from-emerald-900/70 to-transparent',
+    gradient: 'from-gray-950/80 to-transparent',
   },
 ];
 
@@ -76,7 +76,7 @@ const HeroCarousel = () => {
                     </p>
                     <Link
                       to={slide.ctaLink}
-                      className="inline-flex items-center gap-2 bg-white text-primary-700 font-bold px-8 py-3 rounded-full shadow-lg hover:bg-primary-50 transition-all hover:scale-105 active:scale-95"
+                      className="inline-flex items-center gap-2 bg-primary-400 text-gray-900 font-bold px-8 py-3 rounded-full shadow-lg hover:bg-primary-300 transition-all hover:scale-105 active:scale-95"
                     >
                       {slide.ctaTexto}
                     </Link>

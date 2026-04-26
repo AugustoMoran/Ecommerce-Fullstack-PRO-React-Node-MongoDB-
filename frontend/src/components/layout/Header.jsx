@@ -44,7 +44,7 @@ const Header = () => {
     <>
       <header
         className={`fixed top-0 left-0 right-0 z-50 transition-all duration-300 ${
-          scrolled ? 'bg-white shadow-md' : 'bg-white/95 backdrop-blur-sm'
+          scrolled ? 'bg-amber-400 shadow-lg border-b-2 border-amber-500' : 'bg-amber-400 shadow-sm'
         }`}
       >
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
@@ -53,14 +53,14 @@ const Header = () => {
             <div className="flex items-center gap-3">
               <button
                 onClick={() => dispatch(toggleMenu())}
-                className="p-2 rounded-xl hover:bg-gray-100 transition-colors"
+                className="p-2 rounded-xl hover:bg-amber-300 transition-colors text-gray-900"
                 aria-label="Menú"
               >
                 {menuOpen ? <HiX size={24} /> : <HiMenu size={24} />}
               </button>
               <Link to="/" className="flex items-center gap-2" onClick={() => dispatch(closeMenu())}>
-                <div className="w-8 h-8 bg-primary-600 rounded-lg flex items-center justify-center">
-                  <span className="text-white font-bold text-sm">T</span>
+                <div className="w-8 h-8 bg-white rounded-lg flex items-center justify-center">
+                  <span className="text-amber-400 font-bold text-sm">M</span>
                 </div>
                 <span className="font-bold text-lg text-gray-900 hidden sm:block">
                   {import.meta.env.VITE_STORE_NAME || 'Mi Tienda'}
@@ -77,7 +77,7 @@ const Header = () => {
                   value={search}
                   onChange={(e) => setSearch(e.target.value)}
                   placeholder="Buscar productos..."
-                  className="input-field pl-10 pr-4 py-2 text-sm"
+                  className="input-field pl-10 pr-4 py-2 text-sm bg-white text-gray-900 border-none focus:ring-2 focus:ring-gray-900"
                 />
               </div>
             </form>
@@ -86,49 +86,49 @@ const Header = () => {
             <div className="flex items-center gap-1 sm:gap-2">
               {isAuthenticated ? (
                 <div className="relative group">
-                  <button className="flex items-center gap-1 p-2 rounded-xl hover:bg-gray-100 transition-colors">
+                  <button className="flex items-center gap-1 p-2 rounded-xl hover:bg-amber-300 transition-colors text-gray-900">
                     <HiOutlineUser size={22} />
                     <span className="hidden sm:block text-sm font-medium max-w-[80px] truncate">
                       {user?.nombre}
                     </span>
                     <HiChevronDown size={14} className="hidden sm:block" />
                   </button>
-                  <div className="absolute right-0 top-full mt-1 w-48 bg-white rounded-xl shadow-lg border border-gray-100 py-1 opacity-0 invisible group-hover:opacity-100 group-hover:visible transition-all duration-200 z-50">
-                    <Link to="/perfil" className="block px-4 py-2 text-sm hover:bg-gray-50">Mi perfil</Link>
-                    <Link to="/mis-ordenes" className="block px-4 py-2 text-sm hover:bg-gray-50">Mis pedidos</Link>
-                    <Link to="/favoritos" className="block px-4 py-2 text-sm hover:bg-gray-50">Favoritos</Link>
+                  <div className="absolute right-0 top-full mt-1 w-48 bg-white rounded-xl shadow-lg border border-slate-200 py-1 opacity-0 invisible group-hover:opacity-100 group-hover:visible transition-all duration-200 z-50">
+                    <Link to="/perfil" className="block px-4 py-2 text-sm hover:bg-slate-50">Mi perfil</Link>
+                    <Link to="/mis-ordenes" className="block px-4 py-2 text-sm hover:bg-slate-50">Mis pedidos</Link>
+                    <Link to="/favoritos" className="block px-4 py-2 text-sm hover:bg-slate-50">Favoritos</Link>
                     {isAdmin && (
-                      <Link to="/admin" className="block px-4 py-2 text-sm text-primary-600 font-medium hover:bg-gray-50 border-t border-gray-100">
+                      <Link to="/admin" className="block px-4 py-2 text-sm text-gray-900 font-bold hover:bg-amber-50 border-t border-slate-200">
                         Panel Admin
                       </Link>
                     )}
                     <button
                       onClick={logout}
-                      className="w-full text-left px-4 py-2 text-sm text-red-600 hover:bg-gray-50 border-t border-gray-100"
+                      className="w-full text-left px-4 py-2 text-sm text-red-600 hover:bg-slate-50 border-t border-slate-200"
                     >
                       Cerrar sesión
                     </button>
                   </div>
                 </div>
               ) : (
-                <Link to="/login" className="p-2 rounded-xl hover:bg-gray-100 transition-colors">
+                <Link to="/login" className="p-2 rounded-xl hover:bg-amber-300 transition-colors text-gray-900">
                   <HiOutlineUser size={22} />
                 </Link>
               )}
 
               {isAuthenticated && (
-                <Link to="/favoritos" className="p-2 rounded-xl hover:bg-gray-100 transition-colors">
+                <Link to="/favoritos" className="p-2 rounded-xl hover:bg-amber-300 transition-colors text-gray-900">
                   <HiOutlineHeart size={22} />
                 </Link>
               )}
 
               <button
                 onClick={toggleCart}
-                className="relative p-2 rounded-xl hover:bg-gray-100 transition-colors"
+                className="relative p-2 rounded-xl hover:bg-amber-300 transition-colors text-gray-900"
               >
                 <HiOutlineShoppingCart size={22} />
                 {count > 0 && (
-                  <span className="absolute -top-1 -right-1 bg-primary-600 text-white text-xs w-5 h-5 rounded-full flex items-center justify-center font-bold">
+                  <span className="absolute -top-1 -right-1 bg-white text-amber-400 text-xs w-5 h-5 rounded-full flex items-center justify-center font-bold">
                     {count > 9 ? '9+' : count}
                   </span>
                 )}
@@ -159,15 +159,15 @@ const Header = () => {
           }`}
         >
           {/* Header */}
-          <div className="flex items-center justify-between px-5 py-4 border-b border-gray-100">
-            <span className="font-bold text-lg">Menú</span>
-            <button onClick={() => dispatch(closeMenu())} className="p-1 rounded-lg hover:bg-gray-100">
+          <div className="flex items-center justify-between px-5 py-4 border-b border-slate-200 bg-gradient-to-r from-amber-400 to-amber-300">
+            <span className="font-bold text-lg text-gray-900">Menú</span>
+            <button onClick={() => dispatch(closeMenu())} className="p-1 rounded-lg hover:bg-amber-300 text-gray-900">
               <HiX size={22} />
             </button>
           </div>
 
           {/* Mobile search */}
-          <form onSubmit={handleSearch} className="px-5 py-3 border-b border-gray-100">
+          <form onSubmit={handleSearch} className="px-5 py-3 border-b border-slate-200">
             <div className="relative">
               <HiOutlineSearch className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400" size={16} />
               <input
@@ -175,7 +175,7 @@ const Header = () => {
                 value={search}
                 onChange={(e) => setSearch(e.target.value)}
                 placeholder="Buscar..."
-                className="input-field pl-9 py-2 text-sm"
+                className="input-field pl-9 py-2 text-sm bg-white text-gray-900 border-none focus:ring-2 focus:ring-gray-900"
               />
             </div>
           </form>
@@ -185,21 +185,21 @@ const Header = () => {
             <Link
               to="/"
               onClick={() => dispatch(closeMenu())}
-              className="flex items-center gap-3 px-3 py-2.5 rounded-xl hover:bg-gray-50 font-medium transition-colors"
+              className="flex items-center gap-3 px-3 py-2.5 rounded-xl hover:bg-amber-300 font-medium transition-colors text-gray-900"
             >
               Inicio
             </Link>
             <Link
               to="/productos"
               onClick={() => dispatch(closeMenu())}
-              className="flex items-center gap-3 px-3 py-2.5 rounded-xl hover:bg-gray-50 font-medium transition-colors"
+              className="flex items-center gap-3 px-3 py-2.5 rounded-xl hover:bg-amber-300 font-medium transition-colors text-gray-900"
             >
               Todos los productos
             </Link>
 
             {categories.length > 0 && (
               <div className="pt-2">
-                <p className="px-3 text-xs font-semibold text-gray-400 uppercase tracking-wider mb-1">
+                <p className="px-3 text-xs font-semibold text-slate-400 uppercase tracking-wider mb-1">
                   Categorías
                 </p>
                 {categories.map((cat) => (
@@ -207,7 +207,7 @@ const Header = () => {
                     key={cat._id}
                     to={`/productos?categoria=${cat._id}`}
                     onClick={() => dispatch(closeMenu())}
-                    className="flex items-center gap-3 px-3 py-2 rounded-xl hover:bg-gray-50 text-sm transition-colors"
+                    className="flex items-center gap-3 px-3 py-2 rounded-xl hover:bg-amber-300 text-sm transition-colors text-gray-800"
                   >
                     {cat.nombre}
                   </Link>
@@ -217,7 +217,7 @@ const Header = () => {
           </div>
 
           {/* Footer */}
-          <div className="px-5 py-4 border-t border-gray-100 space-y-2">
+          <div className="px-5 py-4 border-t border-slate-200 space-y-2">
             {isAuthenticated ? (
               <>
                 <Link
@@ -231,7 +231,7 @@ const Header = () => {
                   <Link
                     to="/admin"
                     onClick={() => dispatch(closeMenu())}
-                    className="block w-full text-center bg-primary-600 text-white font-semibold py-2 px-4 rounded-xl text-sm hover:bg-primary-700 transition-colors"
+                    className="block w-full text-center bg-gradient-to-r from-gray-900 to-black text-amber-400 font-bold py-2 px-4 rounded-xl text-sm hover:from-black hover:to-gray-900 transition-colors"
                   >
                     ⚙️ Panel Admin
                   </Link>

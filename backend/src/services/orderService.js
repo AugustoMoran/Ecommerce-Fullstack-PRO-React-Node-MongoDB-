@@ -17,6 +17,13 @@ const createOrder = async ({ userId, guestData, items, cuponCodigo, metodoPago }
     const product = await Product.findOne({ _id: item.producto, isActive: true });
     if (!product) throw Object.assign(new Error(`Producto no encontrado: ${item.producto}`), { statusCode: 404 });
 
+    if (product.stock < item.cantidad) {
+      throw Object.assign(
+        new Error(`Stock insuficiente para: ${product.nombre} (disponible: ${product.stock})`),
+        { statusCode: 400 }
+      );
+    }
+
     orderItems.push({
       producto: product._id,
       nombre: product.nombre,
@@ -55,8 +62,6 @@ const createOrder = async ({ userId, guestData, items, cuponCodigo, metodoPago }
     if (attempts > 20) throw new Error('No se pudo generar código de orden único.');
   } while (await Order.findOne({ codigo }));
 
-  const deductStockNow = metodoPago !== 'whatsapp';
-
   const order = await Order.create({
     codigo,
     usuario: userId || null,
@@ -67,17 +72,12 @@ const createOrder = async ({ userId, guestData, items, cuponCodigo, metodoPago }
     total,
     cupon: cuponCodigo ? cuponCodigo.toUpperCase() : null,
     metodoPago: metodoPago || 'pendiente',
-    stockDeducido: deductStockNow,
+    stockDeducido: false,
   });
 
-  // Reduce stock (only for non-whatsapp orders; whatsapp deducts on finalize)
-  if (deductStockNow) {
-    for (const item of orderItems) {
-      await Product.findByIdAndUpdate(item.producto, {
-        $inc: { stock: -item.cantidad, vendidos: item.cantidad },
-      });
-    }
-  }
+  // Stock is NOT deducted here.
+  // MercadoPago: deducted in the webhook when payment is approved.
+  // WhatsApp: deducted in finalizeOrder when the admin dispatches.
 
   // Send notifications
   const emailRecipient = userId ? null : guestData?.email;
@@ -154,8 +154,8 @@ const finalizeOrder = async (id, force = false) => {
   if (order.estadoPago !== 'aprobado') {
     throw Object.assign(new Error('El pedido debe tener pago aprobado para finalizar.'), { statusCode: 400 });
   }
-  if (order.estadoEnvio !== 'entregado') {
-    throw Object.assign(new Error('El pedido debe estar marcado como entregado para finalizar.'), { statusCode: 400 });
+  if (order.estadoEnvio !== 'entregado' && order.estadoEnvio !== 'enviado') {
+    throw Object.assign(new Error('El pedido debe estar en estado "enviado" o "entregado" para finalizar.'), { statusCode: 400 });
   }
 
   for (const item of order.items) {
@@ -177,7 +177,15 @@ const finalizeOrder = async (id, force = false) => {
   order.stockDeducido = true;
   await order.save();
 
-  return Order.findById(order._id).populate('usuario', 'nombre apellido email');
+  // Collect products that hit stock <= 0 after this deduction
+  const agotados = [];
+  for (const item of order.items) {
+    const product = await Product.findById(item.producto).select('nombre stock').lean();
+    if (product && product.stock <= 0) agotados.push({ _id: product._id, nombre: product.nombre, stock: product.stock });
+  }
+
+  const populated = await Order.findById(order._id).populate('usuario', 'nombre apellido email');
+  return { order: populated, agotados };
 };
 
 module.exports = {
