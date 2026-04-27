@@ -31,6 +31,16 @@ const getRelated = async (req, res, next) => {
   }
 };
 
+const getSuggestions = async (req, res, next) => {
+  try {
+    const { q, limit = 10 } = req.query;
+    const suggestions = await productService.getSuggestions(q, parseInt(limit));
+    res.json(suggestions);
+  } catch (error) {
+    next(error);
+  }
+};
+
 const createProduct = async (req, res, next) => {
   try {
     const product = await productService.createProduct(req.body);
@@ -77,4 +87,4 @@ const removeImage = async (req, res, next) => {
   }
 };
 
-module.exports = { getProducts, getProduct, getRelated, createProduct, updateProduct, deleteProduct, addImage, removeImage };
+module.exports = { getProducts, getProduct, getRelated, getSuggestions, createProduct, updateProduct, deleteProduct, addImage, removeImage };

@@ -17,6 +17,10 @@ export const productsApi = baseApi.injectEndpoints({
       query: (id) => `/products/${id}/related`,
       providesTags: ['Product'],
     }),
+    getProductSuggestions: builder.query({
+      query: (q) => ({ url: '/products/suggestions', params: { q, limit: 10 } }),
+      skip: (q) => !q || q.trim().length === 0,
+    }),
     createProduct: builder.mutation({
       query: (data) => ({ url: '/products', method: 'POST', body: data }),
       invalidatesTags: [{ type: 'Product', id: 'LIST' }],
@@ -61,6 +65,7 @@ export const {
   useGetProductsQuery,
   useGetProductQuery,
   useGetRelatedProductsQuery,
+  useGetProductSuggestionsQuery,
   useCreateProductMutation,
   useUpdateProductMutation,
   useDeleteProductMutation,

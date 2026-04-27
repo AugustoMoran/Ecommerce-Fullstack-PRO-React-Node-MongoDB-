@@ -2,10 +2,11 @@ const express = require('express');
 const router = express.Router();
 const { protect, adminOnly } = require('../middleware/auth');
 const {
-  getProducts, getProduct, getRelated, createProduct, updateProduct, deleteProduct, addImage, removeImage,
+  getProducts, getProduct, getRelated, getSuggestions, createProduct, updateProduct, deleteProduct, addImage, removeImage,
 } = require('../controllers/productController');
 
 router.get('/', getProducts);
+router.get('/suggestions', getSuggestions);
 router.get('/:id', getProduct);
 router.get('/:id/related', getRelated);
 

@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import { useDispatch, useSelector } from 'react-redux';
 import {
@@ -13,7 +13,7 @@ import {
 import useAuth from '../../hooks/useAuth';
 import useCart from '../../hooks/useCart';
 import { toggleMenu, closeMenu } from '../../features/ui/uiSlice';
-import { useGetCategoriesQuery } from '../../services/productsApi';
+import { useGetCategoriesQuery, useGetProductSuggestionsQuery } from '../../services/productsApi';
 
 const Header = () => {
   const dispatch = useDispatch();
@@ -24,6 +24,10 @@ const Header = () => {
   const { data: categories = [] } = useGetCategoriesQuery();
   const [search, setSearch] = useState('');
   const [scrolled, setScrolled] = useState(false);
+  const [showSuggestions, setShowSuggestions] = useState(false);
+  const suggestionsRef = useRef(null);
+  
+  const { data: suggestions = [] } = useGetProductSuggestionsQuery(search);
 
   useEffect(() => {
     const onScroll = () => setScrolled(window.scrollY > 20);
@@ -31,13 +35,31 @@ const Header = () => {
     return () => window.removeEventListener('scroll', onScroll);
   }, []);
 
+  useEffect(() => {
+    const handleClickOutside = (e) => {
+      if (suggestionsRef.current && !suggestionsRef.current.contains(e.target)) {
+        setShowSuggestions(false);
+      }
+    };
+    document.addEventListener('mousedown', handleClickOutside);
+    return () => document.removeEventListener('mousedown', handleClickOutside);
+  }, []);
+
   const handleSearch = (e) => {
     e.preventDefault();
     if (search.trim()) {
       navigate(`/productos?search=${encodeURIComponent(search.trim())}`);
       setSearch('');
+      setShowSuggestions(false);
       dispatch(closeMenu());
     }
+  };
+
+  const handleSuggestionClick = (product) => {
+    navigate(`/productos/${product._id}`);
+    setSearch('');
+    setShowSuggestions(false);
+    dispatch(closeMenu());
   };
 
   return (
@@ -69,18 +91,60 @@ const Header = () => {
             </div>
 
             {/* Desktop search */}
-            <form onSubmit={handleSearch} className="hidden md:flex flex-1 max-w-md mx-6">
-              <div className="relative w-full">
-                <HiOutlineSearch className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400" size={18} />
-                <input
-                  type="text"
-                  value={search}
-                  onChange={(e) => setSearch(e.target.value)}
-                  placeholder="Buscar productos..."
-                  className="input-field pl-10 pr-4 py-2 text-sm bg-white text-gray-900 border-none focus:ring-2 focus:ring-gray-900"
-                />
-              </div>
-            </form>
+            <div className="hidden md:flex flex-1 max-w-md mx-6 relative" ref={suggestionsRef}>
+              <form onSubmit={handleSearch} className="w-full">
+                <div className="relative w-full">
+                  <HiOutlineSearch className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400" size={18} />
+                  <input
+                    type="text"
+                    value={search}
+                    onChange={(e) => {
+                      setSearch(e.target.value);
+                      setShowSuggestions(true);
+                    }}
+                    onFocus={() => setShowSuggestions(true)}
+                    placeholder="Buscar productos..."
+                    className="input-field pl-10 pr-4 py-2 text-sm bg-white text-gray-900 border-none focus:ring-2 focus:ring-gray-900 w-full"
+                  />
+                </div>
+              </form>
+              
+              {/* Suggestions dropdown */}
+              {showSuggestions && search.trim().length > 0 && suggestions.length > 0 && (
+                <div className="absolute top-full left-0 right-0 mt-1 bg-white border border-slate-200 rounded-lg shadow-xl z-50 max-h-80 overflow-y-auto">
+                  {suggestions.map((product) => (
+                    <button
+                      key={product._id}
+                      onClick={() => handleSuggestionClick(product)}
+                      className="w-full px-4 py-3 flex items-center gap-3 hover:bg-amber-50 transition-colors border-b border-slate-100 last:border-b-0 text-left"
+                    >
+                      <div className="w-10 h-10 rounded-lg overflow-hidden flex-shrink-0 bg-gray-100">
+                        {product.imagenes?.[0]?.url ? (
+                          <img src={product.imagenes[0].url} alt={product.nombre} className="w-full h-full object-cover" />
+                        ) : (
+                          <div className="w-full h-full flex items-center justify-center text-gray-400">
+                            <HiOutlineSearch size={16} />
+                          </div>
+                        )}
+                      </div>
+                      <div className="flex-1 min-w-0">
+                        <p className="text-sm font-medium text-gray-900 truncate">{product.nombre}</p>
+                        <p className="text-xs text-gray-500">
+                          ${product.precioOferta ? product.precioOferta.toLocaleString('es-AR') : product.precio.toLocaleString('es-AR')}
+                        </p>
+                      </div>
+                    </button>
+                  ))}
+                </div>
+              )}
+              
+              {/* No results message */}
+              {showSuggestions && search.trim().length > 0 && suggestions.length === 0 && (
+                <div className="absolute top-full left-0 right-0 mt-1 bg-white border border-slate-200 rounded-lg shadow-xl z-50 p-4 text-center text-sm text-gray-500">
+                  No se encontraron productos
+                </div>
+              )}
+            </div>
 
             {/* Actions */}
             <div className="flex items-center gap-1 sm:gap-2">
@@ -167,17 +231,50 @@ const Header = () => {
           </div>
 
           {/* Mobile search */}
-          <form onSubmit={handleSearch} className="px-5 py-3 border-b border-slate-200">
+          <form onSubmit={handleSearch} className="px-5 py-3 border-b border-slate-200 relative">
             <div className="relative">
               <HiOutlineSearch className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400" size={16} />
               <input
                 type="text"
                 value={search}
-                onChange={(e) => setSearch(e.target.value)}
+                onChange={(e) => {
+                  setSearch(e.target.value);
+                  setShowSuggestions(true);
+                }}
+                onFocus={() => setShowSuggestions(true)}
                 placeholder="Buscar..."
-                className="input-field pl-9 py-2 text-sm bg-white text-gray-900 border-none focus:ring-2 focus:ring-gray-900"
+                className="input-field pl-9 py-2 text-sm bg-white text-gray-900 border-none focus:ring-2 focus:ring-gray-900 w-full"
               />
             </div>
+            
+            {/* Suggestions dropdown mobile */}
+            {showSuggestions && search.trim().length > 0 && suggestions.length > 0 && (
+              <div className="absolute top-full left-5 right-5 mt-1 bg-white border border-slate-200 rounded-lg shadow-xl z-50 max-h-60 overflow-y-auto">
+                {suggestions.map((product) => (
+                  <button
+                    key={product._id}
+                    onClick={() => handleSuggestionClick(product)}
+                    className="w-full px-3 py-2 flex items-center gap-2 hover:bg-amber-50 transition-colors border-b border-slate-100 last:border-b-0 text-left text-sm"
+                  >
+                    <div className="w-8 h-8 rounded overflow-hidden flex-shrink-0 bg-gray-100">
+                      {product.imagenes?.[0]?.url ? (
+                        <img src={product.imagenes[0].url} alt={product.nombre} className="w-full h-full object-cover" />
+                      ) : (
+                        <div className="w-full h-full flex items-center justify-center text-gray-400">
+                          <HiOutlineSearch size={14} />
+                        </div>
+                      )}
+                    </div>
+                    <div className="flex-1 min-w-0">
+                      <p className="font-medium text-gray-900 truncate text-xs">{product.nombre}</p>
+                      <p className="text-xs text-gray-500">
+                        ${product.precioOferta ? product.precioOferta.toLocaleString('es-AR') : product.precio.toLocaleString('es-AR')}
+                      </p>
+                    </div>
+                  </button>
+                ))}
+              </div>
+            )}
           </form>
 
           {/* Nav Links */}

@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useRef, useEffect } from 'react';
 import { useSearchParams } from 'react-router-dom';
 import AdminLayout from '../../components/admin/AdminLayout';
 import {
@@ -9,6 +9,7 @@ import {
   useGetCategoriesQuery,
   useAddProductImageMutation,
   useRemoveProductImageMutation,
+  useGetProductSuggestionsQuery,
 } from '../../services/productsApi';
 import { useUploadImageMutation } from '../../services/cartApi';
 import { formatCurrency } from '../../utils/formatCurrency';
@@ -23,9 +24,14 @@ const ProductsAdmin = () => {
   const [page, setPage] = useState(1);
   const [search, setSearch] = useState('');
   const [filterCat, setFilterCat] = useState('');
+  const [showSuggestions, setShowSuggestions] = useState(false);
+  const suggestionsRef = useRef(null);
   const sinStock = searchParams.get('sinStock') === '1';
+  
   const { data, isLoading } = useGetProductsQuery({ page, limit: 12, search: search || undefined, categoria: filterCat || undefined, sinStock: sinStock || undefined });
   const { data: categories = [] } = useGetCategoriesQuery();
+  const { data: suggestions = [] } = useGetProductSuggestionsQuery(search);
+  
   const [deleteProduct] = useDeleteProductMutation();
   const [createProduct] = useCreateProductMutation();
   const [updateProduct] = useUpdateProductMutation();
@@ -45,6 +51,16 @@ const ProductsAdmin = () => {
 
   const existingImages = editingProduct?.imagenes || [];
   const totalImages = existingImages.length + newImagePreviews.length;
+
+  useEffect(() => {
+    const handleClickOutside = (e) => {
+      if (suggestionsRef.current && !suggestionsRef.current.contains(e.target)) {
+        setShowSuggestions(false);
+      }
+    };
+    document.addEventListener('mousedown', handleClickOutside);
+    return () => document.removeEventListener('mousedown', handleClickOutside);
+  }, []);
 
   const handleAddImages = (e) => {
     const files = Array.from(e.target.files || []);
@@ -143,6 +159,20 @@ const ProductsAdmin = () => {
     } catch { toast.error('Error al actualizar stock'); }
   };
 
+  const handleSuggestionClick = async (suggestionProduct) => {
+    try {
+      // Obtener el producto completo para asegurar todos los datos
+      const response = await fetch(`http://localhost:5000/api/products/${suggestionProduct._id}`);
+      const fullProduct = await response.json();
+      handleEdit(fullProduct);
+      setSearch('');
+      setShowSuggestions(false);
+      toast.success(`Editando: ${fullProduct.nombre}`);
+    } catch (err) {
+      toast.error('Error al cargar producto');
+    }
+  };
+
   return (
     <AdminLayout>
       <div className="flex items-center justify-between mb-4">
@@ -154,15 +184,56 @@ const ProductsAdmin = () => {
 
       {/* Filters */}
       <div className="flex flex-wrap gap-3 mb-6">
-        <div className="relative flex-1 min-w-[180px]">
+        <div className="relative flex-1 min-w-[180px]" ref={suggestionsRef}>
           <HiOutlineSearch size={16} className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400" />
           <input
             type="text"
             placeholder="Buscar producto..."
             value={search}
-            onChange={(e) => { setSearch(e.target.value); setPage(1); }}
+            onChange={(e) => { 
+              setSearch(e.target.value); 
+              setPage(1);
+              setShowSuggestions(true);
+            }}
+            onFocus={() => setShowSuggestions(true)}
             className="input-field pl-9"
           />
+          
+          {/* Suggestions dropdown */}
+          {showSuggestions && search.trim().length > 0 && suggestions.length > 0 && (
+            <div className="absolute top-full left-0 right-0 mt-1 bg-white border border-slate-200 rounded-lg shadow-xl z-50 max-h-80 overflow-y-auto">
+              {suggestions.map((product) => (
+                <button
+                  key={product._id}
+                  onClick={() => handleSuggestionClick(product)}
+                  className="w-full px-4 py-3 flex items-center gap-3 hover:bg-amber-50 transition-colors border-b border-slate-100 last:border-b-0 text-left"
+                >
+                  <div className="w-10 h-10 rounded-lg overflow-hidden flex-shrink-0 bg-gray-100">
+                    {product.imagenes?.[0]?.url ? (
+                      <img src={product.imagenes[0].url} alt={product.nombre} className="w-full h-full object-cover" />
+                    ) : (
+                      <div className="w-full h-full flex items-center justify-center text-gray-400">
+                        <HiOutlineSearch size={16} />
+                      </div>
+                    )}
+                  </div>
+                  <div className="flex-1 min-w-0">
+                    <p className="text-sm font-medium text-gray-900 truncate">{product.nombre}</p>
+                    <p className="text-xs text-gray-500">
+                      ${product.precioOferta ? product.precioOferta.toLocaleString('es-AR') : product.precio.toLocaleString('es-AR')}
+                    </p>
+                  </div>
+                </button>
+              ))}
+            </div>
+          )}
+          
+          {/* No results message */}
+          {showSuggestions && search.trim().length > 0 && suggestions.length === 0 && (
+            <div className="absolute top-full left-0 right-0 mt-1 bg-white border border-slate-200 rounded-lg shadow-xl z-50 p-4 text-center text-sm text-gray-500">
+              No se encontraron productos
+            </div>
+          )}
         </div>
         <select
           value={filterCat}

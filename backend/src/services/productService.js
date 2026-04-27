@@ -100,6 +100,25 @@ const removeProductImage = async (productId, publicId) => {
   return product.save();
 };
 
+const getSuggestions = async (q, limit = 10) => {
+  if (!q || q.trim().length === 0) return [];
+  
+  const query = q.trim().toLowerCase();
+  const suggestions = await Product.find({
+    isActive: true,
+    $or: [
+      { nombre: { $regex: `^${query}`, $options: 'i' } },
+      { nombre: { $regex: query, $options: 'i' } },
+      { tags: { $regex: query, $options: 'i' } },
+    ],
+  })
+    .select('_id nombre precio precioOferta imagenes')
+    .limit(limit)
+    .lean();
+  
+  return suggestions;
+};
+
 module.exports = {
   getProducts,
   getProductById,
@@ -109,4 +128,5 @@ module.exports = {
   deleteProduct,
   addProductImage,
   removeProductImage,
+  getSuggestions,
 };
