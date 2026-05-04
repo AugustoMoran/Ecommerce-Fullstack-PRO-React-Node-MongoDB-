@@ -222,6 +222,72 @@ WHATSAPP_NUMBER=     # Número con código de país (ej: 5491112345678)
 
 ---
 
-## 📄 Licencia
+## �️ Seed — datos de demostración
+
+El seed crea un usuario admin, categorías, productos y cupones de ejemplo para empezar sin datos vacíos.
+
+```bash
+cd backend
+
+# Insertar datos de demo
+npm run seed
+
+# Borrar todo e insertar desde cero
+npm run seed:destroy
+```
+
+Credenciales del admin creado por el seed:
+
+| Campo | Valor |
+|---|---|
+| Email | `admin@demo.com` |
+| Password | `Admin1234!` |
+
+Cupones disponibles: `BIENVENIDO10` (10% off, mínimo $5000) · `DESCUENTO500` ($500 off, mínimo $10000)
+
+---
+
+## 🧪 Testing
+
+```bash
+cd backend
+
+# Correr todos los tests
+npm test
+
+# Correr solo unit tests (sin DB)
+npx jest __tests__/unit
+
+# Correr tests de integración (requiere MONGO_URI)
+npx jest __tests__/integration
+```
+
+Estructura de tests:
+
+```
+backend/
+└── __tests__/
+    ├── unit/
+    │   └── authService.test.js    # Unit tests con mocks (sin DB)
+    └── integration/
+        └── auth.test.js           # Integration tests contra Express + MongoDB
+```
+
+---
+
+## 📋 Logging estructurado
+
+El backend usa un logger centralizado en `src/utils/logger.js`.
+
+- **Desarrollo**: salida colorizada en consola con timestamp
+- **Producción**: JSON estructurado, compatible con Datadog / Logtail / Papertrail
+
+Niveles disponibles: `error`, `warn`, `info`, `debug` (debug solo en desarrollo).
+
+No se usa `console.log` directamente en ningún módulo del backend.
+
+---
+
+## �📄 Licencia
 
 MIT © [Augusto Moran](https://github.com/AugustoMoran)

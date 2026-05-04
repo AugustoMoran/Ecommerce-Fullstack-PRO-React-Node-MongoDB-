@@ -1,9 +1,15 @@
+import config from '../config/app';
+
 export const generateWhatsAppLink = (items, total, phone) => {
-  const number = phone || import.meta.env.VITE_WHATSAPP_NUMBER || '5491100000000';
+  const number = phone || config.whatsappNumber;
   const itemsList = items
     .map((i) => {
       const price = i.producto?.precioOferta || i.producto?.precio || i.precio;
-      return `• ${i.producto?.nombre || i.nombre} x${i.cantidad} = $${(price * i.cantidad).toFixed(2)}`;
+      let itemText = `• ${i.producto?.nombre || i.nombre} x${i.cantidad}`;
+      if (i.talla) itemText += ` - Talla: ${i.talla}`;
+      if (i.color) itemText += ` - Color: ${i.color}`;
+      itemText += ` = $${(price * i.cantidad).toFixed(2)}`;
+      return itemText;
     })
     .join('\n');
 

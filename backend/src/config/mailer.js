@@ -1,9 +1,8 @@
 const nodemailer = require('nodemailer');
+const logger = require('../utils/logger');
 
 const transporter = nodemailer.createTransport({
-  host: process.env.SMTP_HOST,
-  port: parseInt(process.env.SMTP_PORT || '587', 10),
-  secure: process.env.SMTP_PORT === '465',
+  service: 'gmail',
   auth: {
     user: process.env.SMTP_USER,
     pass: process.env.SMTP_PASS,
@@ -12,9 +11,9 @@ const transporter = nodemailer.createTransport({
 
 transporter.verify((error) => {
   if (error) {
-    console.warn('⚠️  Mailer config error:', error.message);
+    logger.warn('Mailer config error', { message: error.message });
   } else {
-    console.log('✅ Mailer ready');
+    logger.info('Mailer ready');
   }
 });
 

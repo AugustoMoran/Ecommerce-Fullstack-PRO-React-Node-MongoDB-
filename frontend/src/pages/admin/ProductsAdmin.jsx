@@ -9,15 +9,42 @@ import {
   useGetCategoriesQuery,
   useAddProductImageMutation,
   useRemoveProductImageMutation,
+  useAddProductVideoMutation,
+  useRemoveProductVideoMutation,
   useGetProductSuggestionsQuery,
 } from '../../services/productsApi';
 import { useUploadImageMutation } from '../../services/cartApi';
 import { formatCurrency } from '../../utils/formatCurrency';
 import toast from 'react-hot-toast';
-import { HiOutlinePlus, HiOutlineTrash, HiOutlinePencil, HiX, HiOutlinePhotograph, HiOutlineSearch, HiOutlineRefresh } from 'react-icons/hi';
+import { HiOutlinePlus, HiOutlineTrash, HiOutlinePencil, HiX, HiOutlinePhotograph, HiOutlineSearch, HiOutlineRefresh, HiOutlineFilm } from 'react-icons/hi';
 
 const MAX_IMAGES = 7;
-const EMPTY = { nombre: '', descripcion: '', precio: '', precioOferta: '', stock: '', categoria: '', tags: '' };
+const TALLAS_DISPONIBLES = ['1', '2', '3', '4', '5', '6', '7', '8'];
+
+// Normalizar a strings para consistency (HTML input values son siempre strings)
+const EMPTY = { 
+  nombre: '', 
+  descripcion: '', 
+  precio: '', 
+  precioOferta: '', 
+  stock: '', 
+  categoria: '', 
+  tags: '',
+  tallas: { habilitadas: [], rango: '' },
+  colores: []
+};
+
+const normalizeForm = (formData) => ({
+  nombre: String(formData.nombre || ''),
+  descripcion: String(formData.descripcion || ''),
+  precio: String(formData.precio || ''),
+  precioOferta: String(formData.precioOferta || ''),
+  stock: String(formData.stock || ''),
+  categoria: String(formData.categoria || ''),
+  tags: String(formData.tags || ''),
+  tallas: formData.tallas || { habilitadas: [], rango: '' },
+  colores: formData.colores || [],
+});
 
 const ProductsAdmin = () => {
   const [searchParams] = useSearchParams();
@@ -37,6 +64,8 @@ const ProductsAdmin = () => {
   const [updateProduct] = useUpdateProductMutation();
   const [addImage] = useAddProductImageMutation();
   const [removeImage] = useRemoveProductImageMutation();
+  const [addVideo] = useAddProductVideoMutation();
+  const [removeVideo] = useRemoveProductVideoMutation();
   const [uploadImage] = useUploadImageMutation();
 
   const [form, setForm] = useState(EMPTY);
@@ -46,11 +75,16 @@ const ProductsAdmin = () => {
   const [uploading, setUploading] = useState(false);
   const [newImageFiles, setNewImageFiles] = useState([]);
   const [newImagePreviews, setNewImagePreviews] = useState([]);
+  const [newVideoFiles, setNewVideoFiles] = useState([]);
+  const [newVideoPreviews, setNewVideoPreviews] = useState([]);
   const [restockId, setRestockId] = useState(null);
   const [restockQty, setRestockQty] = useState('');
+  const [nuevoColor, setNuevoColor] = useState({ nombre: '', codigo: '#000000', habilitado: true });
 
   const existingImages = editingProduct?.imagenes || [];
+  const existingVideos = editingProduct?.videos || [];
   const totalImages = existingImages.length + newImagePreviews.length;
+  const totalVideos = existingVideos.length + newVideoPreviews.length;
 
   useEffect(() => {
     const handleClickOutside = (e) => {
@@ -76,14 +110,68 @@ const ProductsAdmin = () => {
     setNewImagePreviews((prev) => prev.filter((_, i) => i !== index));
   };
 
-  const handleRemoveExistingImage = async (publicId) => {
+  const handleAddVideos = (e) => {
+    const files = Array.from(e.target.files || []);
+    const remaining = 3 - totalVideos;
+    const toAdd = files.slice(0, remaining);
+    setNewVideoFiles((prev) => [...prev, ...toAdd]);
+    setNewVideoPreviews((prev) => [...prev, ...toAdd.map((f) => ({ name: f.name, url: URL.createObjectURL(f) }))]);
+    e.target.value = '';
+  };
+
+  const removeNewVideo = (index) => {
+    setNewVideoFiles((prev) => prev.filter((_, i) => i !== index));
+    setNewVideoPreviews((prev) => prev.filter((_, i) => i !== index));
+  };
+
+  const toggleTalla = (talla) => {
+    setForm((prev) => {
+      const habilitadas = prev.tallas.habilitadas.includes(talla)
+        ? prev.tallas.habilitadas.filter((t) => t !== talla)
+        : [...prev.tallas.habilitadas, talla];
+      return { ...prev, tallas: { ...prev.tallas, habilitadas } };
+    });
+  };
+
+  const agregarColor = () => {
+    if (!nuevoColor.nombre.trim()) {
+      toast.error('El color debe tener un nombre');
+      return;
+    }
+    if (form.colores.length >= 8) {
+      toast.error('Máximo 8 colores por producto');
+      return;
+    }
+    setForm((prev) => ({
+      ...prev,
+      colores: [...prev.colores, { ...nuevoColor }]
+    }));
+    setNuevoColor({ nombre: '', codigo: '#000000', habilitado: true });
+  };
+
+  const removerColor = (index) => {
+    setForm((prev) => ({
+      ...prev,
+      colores: prev.colores.filter((_, i) => i !== index)
+    }));
+  };
+
+  const toggleColorHabilitado = (index) => {
+    setForm((prev) => {
+      const colores = [...prev.colores];
+      colores[index].habilitado = !colores[index].habilitado;
+      return { ...prev, colores };
+    });
+  };
+
+  const handleRemoveExistingVideo = async (publicId) => {
     if (!editingProduct) return;
     try {
-      await removeImage({ id: editingProduct._id, publicId }).unwrap();
-      setEditingProduct((prev) => ({ ...prev, imagenes: prev.imagenes.filter((img) => img.publicId !== publicId) }));
-      toast.success('Imagen eliminada');
+      await removeVideo({ id: editingProduct._id, publicId }).unwrap();
+      setEditingProduct((prev) => ({ ...prev, videos: prev.videos.filter((vid) => vid.publicId !== publicId) }));
+      toast.success('Video eliminado');
     } catch {
-      toast.error('Error al eliminar imagen');
+      toast.error('Error al eliminar video');
     }
   };
 
@@ -91,13 +179,25 @@ const ProductsAdmin = () => {
     e.preventDefault();
     setUploading(true);
     try {
+      // Validar que los valores requeridos no sean vacíos
+      if (!form.nombre.trim() || !form.precio) {
+        toast.error('Nombre y Precio son requeridos');
+        setUploading(false);
+        return;
+      }
+
       const payload = {
-        ...form,
+        nombre: form.nombre.trim(),
+        descripcion: form.descripcion.trim(),
         precio: Number(form.precio),
         precioOferta: form.precioOferta ? Number(form.precioOferta) : undefined,
-        stock: Number(form.stock),
-        tags: form.tags ? form.tags.split(',').map((t) => t.trim()) : [],
+        stock: Number(form.stock) || 0,
+        categoria: form.categoria || undefined,
+        tags: form.tags ? form.tags.split(',').map((t) => t.trim()).filter(Boolean) : [],
+        tallas: form.tallas,
+        colores: form.colores,
       };
+
       let productId = editing;
       if (editing) {
         await updateProduct({ id: editing, ...payload }).unwrap();
@@ -107,37 +207,58 @@ const ProductsAdmin = () => {
         productId = created._id;
         toast.success('Producto creado');
       }
+      
       for (const file of newImageFiles) {
         const fd = new FormData();
         fd.append('image', file);
         const { url, publicId } = await uploadImage(fd).unwrap();
         await addImage({ id: productId, url, publicId }).unwrap();
       }
+      
+      for (const file of newVideoFiles) {
+        const fd = new FormData();
+        fd.append('image', file); // Cloudinary acepta videos en el campo "image"
+        const { url, publicId } = await uploadImage(fd).unwrap();
+        await addVideo({ id: productId, url, publicId }).unwrap();
+      }
+      
       setForm(EMPTY);
       setEditing(null);
       setEditingProduct(null);
       setShowForm(false);
       setNewImageFiles([]);
       setNewImagePreviews([]);
+      setNewVideoFiles([]);
+      setNewVideoPreviews([]);
+      setNuevoColor({ nombre: '', codigo: '#000000', habilitado: true });
     } catch (err) {
-      toast.error(err?.data?.message || 'Error');
+      toast.error(err?.data?.message || 'Error al guardar');
     } finally {
       setUploading(false);
     }
   };
 
   const handleEdit = (p) => {
-    setForm({
-      nombre: p.nombre, descripcion: p.descripcion, precio: p.precio,
-      precioOferta: p.precioOferta || '', stock: p.stock,
+    // Normalizar todos los valores a strings para consistency
+    setForm(normalizeForm({
+      nombre: p.nombre,
+      descripcion: p.descripcion,
+      precio: p.precio,
+      precioOferta: p.precioOferta,
+      stock: p.stock,
       categoria: p.categoria?._id || p.categoria || '',
       tags: p.tags?.join(', ') || '',
-    });
+      tallas: p.tallas || { habilitadas: [], rango: '' },
+      colores: p.colores || [],
+    }));
     setEditing(p._id);
     setEditingProduct(p);
     setShowForm(true);
     setNewImageFiles([]);
     setNewImagePreviews([]);
+    setNewVideoFiles([]);
+    setNewVideoPreviews([]);
+    setNuevoColor({ nombre: '', codigo: '#000000', habilitado: true });
   };
 
   const handleDelete = async (id) => {
@@ -177,7 +298,7 @@ const ProductsAdmin = () => {
     <AdminLayout>
       <div className="flex items-center justify-between mb-4">
         <h1 className="text-2xl font-bold">Productos</h1>
-        <button onClick={() => { setShowForm(true); setEditing(null); setEditingProduct(null); setForm(EMPTY); setNewImageFiles([]); setNewImagePreviews([]); }} className="btn-primary flex items-center gap-2">
+        <button onClick={() => { setShowForm(true); setEditing(null); setEditingProduct(null); setForm(EMPTY); setNewImageFiles([]); setNewImagePreviews([]); setNewVideoFiles([]); setNewVideoPreviews([]); setNuevoColor({ nombre: '', codigo: '#000000', habilitado: true }); }} className="btn-primary flex items-center gap-2">
           <HiOutlinePlus size={16} /> Nuevo producto
         </button>
       </div>
@@ -259,7 +380,7 @@ const ProductsAdmin = () => {
           </div>
           <form onSubmit={handleSubmit} className="grid grid-cols-1 md:grid-cols-2 gap-4">
             <div className="md:col-span-2">
-              <label className="block text-sm font-medium mb-1">Nombre</label>
+              <label className="block text-sm font-medium mb-1">Nombre *</label>
               <input type="text" value={form.nombre} onChange={(e) => setForm({ ...form, nombre: e.target.value })} className="input-field" required />
             </div>
             <div className="md:col-span-2">
@@ -267,7 +388,7 @@ const ProductsAdmin = () => {
               <textarea value={form.descripcion} onChange={(e) => setForm({ ...form, descripcion: e.target.value })} className="input-field" rows={3} />
             </div>
             <div>
-              <label className="block text-sm font-medium mb-1">Precio</label>
+              <label className="block text-sm font-medium mb-1">Precio *</label>
               <input type="number" value={form.precio} onChange={(e) => setForm({ ...form, precio: e.target.value })} className="input-field" required min="0" step="0.01" />
             </div>
             <div>
@@ -288,6 +409,121 @@ const ProductsAdmin = () => {
             <div className="md:col-span-2">
               <label className="block text-sm font-medium mb-1">Tags (separados por coma)</label>
               <input type="text" value={form.tags} onChange={(e) => setForm({ ...form, tags: e.target.value })} className="input-field" placeholder="verano, oferta, nuevo" />
+            </div>
+
+            {/* Tallas section */}
+            <div className="md:col-span-2">
+              <label className="block text-sm font-medium mb-2">Tallas disponibles</label>
+              <div className="flex flex-wrap gap-2">
+                {TALLAS_DISPONIBLES.map((talla) => (
+                  <button
+                    key={talla}
+                    type="button"
+                    onClick={() => toggleTalla(talla)}
+                    className={`px-3 py-2 rounded-lg font-medium border-2 transition-colors ${
+                      form.tallas.habilitadas.includes(talla)
+                        ? 'border-yellow-400 bg-yellow-100 text-gray-900'
+                        : 'border-gray-200 bg-white text-gray-700 hover:border-gray-300'
+                    }`}
+                  >
+                    {talla}
+                  </button>
+                ))}
+              </div>
+              <div className="mt-3">
+                <label className="block text-xs font-medium text-gray-600 mb-1">Rango (ej: XS-XL)</label>
+                <input
+                  type="text"
+                  value={form.tallas.rango}
+                  onChange={(e) => setForm({ ...form, tallas: { ...form.tallas, rango: e.target.value } })}
+                  className="input-field text-sm"
+                  placeholder="Opcional: descripción del rango"
+                />
+              </div>
+            </div>
+
+            {/* Colores section */}
+            <div className="md:col-span-2">
+              <label className="block text-sm font-medium mb-2">Colores ({form.colores.length}/8)</label>
+              
+              {/* Add new color */}
+              <div className="mb-3 p-3 bg-gray-50 rounded-lg border border-gray-200">
+                <div className="grid grid-cols-1 sm:grid-cols-3 gap-3 mb-2">
+                  <div>
+                    <label className="block text-xs font-medium text-gray-600 mb-1">Nombre del color</label>
+                    <input
+                      type="text"
+                      value={nuevoColor.nombre}
+                      onChange={(e) => setNuevoColor({ ...nuevoColor, nombre: e.target.value })}
+                      className="input-field text-sm"
+                      placeholder="ej: Rojo, Azul oscuro"
+                    />
+                  </div>
+                  <div>
+                    <label className="block text-xs font-medium text-gray-600 mb-1">Código de color</label>
+                    <div className="flex gap-2">
+                      <input
+                        type="color"
+                        value={nuevoColor.codigo}
+                        onChange={(e) => setNuevoColor({ ...nuevoColor, codigo: e.target.value })}
+                        className="w-12 h-9 rounded border border-gray-300 cursor-pointer"
+                      />
+                      <input
+                        type="text"
+                        value={nuevoColor.codigo}
+                        onChange={(e) => setNuevoColor({ ...nuevoColor, codigo: e.target.value })}
+                        className="input-field text-sm flex-1"
+                        placeholder="#000000"
+                      />
+                    </div>
+                  </div>
+                  <div className="flex items-end">
+                    <button
+                      type="button"
+                      onClick={agregarColor}
+                      disabled={form.colores.length >= 8}
+                      className="w-full btn-primary text-sm"
+                    >
+                      + Agregar color
+                    </button>
+                  </div>
+                </div>
+              </div>
+
+              {/* List of colors */}
+              {form.colores.length > 0 && (
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
+                  {form.colores.map((color, i) => (
+                    <div key={i} className="flex items-center gap-2 p-2 bg-gray-50 rounded-lg border border-gray-200">
+                      <div
+                        className="w-8 h-8 rounded-full border-2 border-gray-300 flex-shrink-0"
+                        style={{ backgroundColor: color.codigo }}
+                        title={color.codigo}
+                      />
+                      <div className="flex-1 min-w-0">
+                        <p className="text-sm font-medium text-gray-900 truncate">{color.nombre}</p>
+                        <p className="text-xs text-gray-500">{color.codigo}</p>
+                      </div>
+                      <label className="flex items-center gap-1 cursor-pointer flex-shrink-0">
+                        <input
+                          type="checkbox"
+                          checked={color.habilitado}
+                          onChange={() => toggleColorHabilitado(i)}
+                          className="w-4 h-4"
+                        />
+                        <span className="text-xs text-gray-600">Activo</span>
+                      </label>
+                      <button
+                        type="button"
+                        onClick={() => removerColor(i)}
+                        className="p-1 rounded hover:bg-red-50 text-red-400 flex-shrink-0"
+                      >
+                        <HiX size={16} />
+                      </button>
+                    </div>
+                  ))}
+                </div>
+              )}
             </div>
 
             {/* Multi-image section */}
@@ -328,6 +564,55 @@ const ProductsAdmin = () => {
                     <HiOutlinePlus size={18} className="text-gray-300" />
                     <span className="text-xs text-gray-400 mt-1">Agregar</span>
                     <input type="file" accept="image/*" multiple className="sr-only" onChange={handleAddImages} />
+                  </label>
+                )}
+              </div>
+            </div>
+
+            {/* Multi-video section */}
+            <div className="md:col-span-2">
+              <label className="block text-sm font-medium mb-2">
+                Vídeos <span className="text-gray-400 font-normal">({totalVideos}/3)</span>
+              </label>
+              <div className="grid grid-cols-4 sm:grid-cols-7 gap-2">
+                {/* Existing videos */}
+                {existingVideos.map((vid) => (
+                  <div key={vid.publicId} className="relative aspect-square">
+                    <video src={vid.url} className="w-full h-full object-cover rounded-lg border bg-black" />
+                    <div className="absolute inset-0 flex items-center justify-center bg-black/40 rounded-lg">
+                      <HiOutlineFilm size={24} className="text-white" />
+                    </div>
+                    <button
+                      type="button"
+                      onClick={() => handleRemoveExistingVideo(vid.publicId)}
+                      className="absolute -top-1.5 -right-1.5 bg-red-500 text-white rounded-full p-0.5 shadow"
+                    >
+                      <HiX size={10} />
+                    </button>
+                  </div>
+                ))}
+                {/* New video previews */}
+                {newVideoPreviews.map((vidData, i) => (
+                  <div key={i} className="relative aspect-square">
+                    <video src={vidData.url} className="w-full h-full object-cover rounded-lg border bg-black" />
+                    <div className="absolute inset-0 flex items-center justify-center bg-black/40 rounded-lg">
+                      <HiOutlineFilm size={24} className="text-white" />
+                    </div>
+                    <button
+                      type="button"
+                      onClick={() => removeNewVideo(i)}
+                      className="absolute -top-1.5 -right-1.5 bg-red-500 text-white rounded-full p-0.5 shadow"
+                    >
+                      <HiX size={10} />
+                    </button>
+                  </div>
+                ))}
+                {/* Add slot */}
+                {totalVideos < 3 && (
+                  <label className="aspect-square border-2 border-dashed border-gray-200 rounded-lg flex flex-col items-center justify-center cursor-pointer hover:border-primary-400 transition-colors">
+                    <HiOutlinePlus size={18} className="text-gray-300" />
+                    <span className="text-xs text-gray-400 mt-1">Agregar</span>
+                    <input type="file" accept="video/*" multiple className="sr-only" onChange={handleAddVideos} />
                   </label>
                 )}
               </div>

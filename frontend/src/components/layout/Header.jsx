@@ -66,7 +66,7 @@ const Header = () => {
     <>
       <header
         className={`fixed top-0 left-0 right-0 z-50 transition-all duration-300 ${
-          scrolled ? 'bg-amber-400 shadow-lg border-b-2 border-amber-500' : 'bg-amber-400 shadow-sm'
+          scrolled ? 'bg-yellow-400 shadow-lg border-b-4 border-gray-900' : 'bg-yellow-400 shadow-sm'
         }`}
       >
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
@@ -81,12 +81,7 @@ const Header = () => {
                 {menuOpen ? <HiX size={24} /> : <HiMenu size={24} />}
               </button>
               <Link to="/" className="flex items-center gap-2" onClick={() => dispatch(closeMenu())}>
-                <div className="w-8 h-8 bg-white rounded-lg flex items-center justify-center">
-                  <span className="text-amber-400 font-bold text-sm">M</span>
-                </div>
-                <span className="font-bold text-lg text-gray-900 hidden sm:block">
-                  {import.meta.env.VITE_STORE_NAME || 'Mi Tienda'}
-                </span>
+                <img src="/m-sports-logo.png" alt="M Sports Logo" className="h-14 w-auto object-contain" />
               </Link>
             </div>
 
@@ -293,6 +288,7 @@ const Header = () => {
             >
               Todos los productos
             </Link>
+
 
             {categories.length > 0 && (
               <div className="pt-2">

@@ -2,7 +2,7 @@
 <html lang="es">
   <head>
     <meta charset="UTF-8" />
-    <link rel="icon" type="image/svg+xml" href="/favicon.svg" />
+    <link rel="icon" type="image/png" href="/favicon-logo.png" sizes="192x192" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <meta name="theme-color" content="#2563eb" />
     <title>Mi Tienda Online</title>
@@ -12,6 +12,14 @@
   </head>
   <body>
     <div id="root"></div>
+    <!-- Mercado Pago SDK - Loaded early to prevent race conditions -->
+    <script>
+      // Load MP SDK early with error handling
+      const script = document.createElement('script');
+      script.src = 'https://sdk.mercadopago.com/js/v2';
+      script.onerror = () => console.warn('⚠️ Failed to load Mercado Pago SDK from CDN');
+      document.head.appendChild(script);
+    </script>
     <script type="module" src="/src/main.jsx"></script>
   </body>
 </html>

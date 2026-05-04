@@ -1,9 +1,18 @@
 const mongoose = require('mongoose');
 
-const imageSchema = new mongoose.Schema(
+const mediaSchema = new mongoose.Schema(
   {
     url: { type: String, required: true },
     publicId: { type: String, required: true },
+  },
+  { _id: false }
+);
+
+const colorSchema = new mongoose.Schema(
+  {
+    nombre: { type: String, required: true, trim: true },
+    codigo: { type: String, required: true },
+    habilitado: { type: Boolean, default: true },
   },
   { _id: false }
 );
@@ -16,8 +25,17 @@ const productSchema = new mongoose.Schema(
     precioOferta: { type: Number, default: null, min: 0 },
     stock: { type: Number, required: true, min: 0, default: 0 },
     categoria: { type: mongoose.Schema.Types.ObjectId, ref: 'Category', default: null },
-    imagenes: [imageSchema],
+    imagenes: [mediaSchema],
+    videos: [mediaSchema],
     tags: [{ type: String, trim: true }],
+    
+    // Tallas y colores (max 8 colores)
+    tallas: {
+      habilitadas: [{ type: String, trim: true }],
+      rango: { type: String, default: '' },
+    },
+    colores: [colorSchema],
+    
     isActive: { type: Boolean, default: true },
     deletedAt: { type: Date, default: null },
     vendidos: { type: Number, default: 0 },

@@ -24,12 +24,29 @@ const createOrder = async ({ userId, guestData, items, cuponCodigo, metodoPago }
       );
     }
 
+    // Validar talla solo si el producto tiene tallas habilitadas
+    if (product.tallas?.habilitadas?.length > 0 && item.talla) {
+      if (!product.tallas.habilitadas.includes(item.talla)) {
+        throw Object.assign(new Error(`Talla no disponible: ${item.talla}`), { statusCode: 400 });
+      }
+    }
+    
+    // Validar color solo si el producto tiene colores
+    if (product.colores?.length > 0 && item.color) {
+      const colorDisponible = product.colores.find(c => c.nombre === item.color || c.codigo === item.color);
+      if (!colorDisponible || !colorDisponible.habilitado) {
+        throw Object.assign(new Error(`Color no disponible: ${item.color}`), { statusCode: 400 });
+      }
+    }
+
     orderItems.push({
       producto: product._id,
       nombre: product.nombre,
       precio: product.precioOferta || product.precio,
       cantidad: item.cantidad,
       imagen: product.imagenes[0]?.url || '',
+      talla: item.talla,
+      color: item.color,
     });
     subtotal += (product.precioOferta || product.precio) * item.cantidad;
   }
@@ -72,6 +89,8 @@ const createOrder = async ({ userId, guestData, items, cuponCodigo, metodoPago }
     total,
     cupon: cuponCodigo ? cuponCodigo.toUpperCase() : null,
     metodoPago: metodoPago || 'pendiente',
+    estadoPago: 'pendiente',      // Always start as pending; webhook (MP) or admin (WhatsApp) approves
+    estadoEnvio: 'pendiente',     // Always start as pending until admin dispatches
     stockDeducido: false,
   });
 
@@ -80,11 +99,35 @@ const createOrder = async ({ userId, guestData, items, cuponCodigo, metodoPago }
   // WhatsApp: deducted in finalizeOrder when the admin dispatches.
 
   // Send notifications
-  const emailRecipient = userId ? null : guestData?.email;
-  if (emailRecipient) {
-    sendOrderConfirmationToUser(emailRecipient, order).catch(console.error);
+  // For Mercado Pago: email will be sent from the webhook when payment is approved
+  // For WhatsApp: email is sent immediately
+  if (metodoPago === 'whatsapp') {
+    // Get email from user or guest data
+    let emailRecipient = null;
+    if (userId) {
+      // For logged-in users, fetch their email from the database
+      const User = require('../models/User');
+      const user = await User.findById(userId);
+      emailRecipient = user?.email;
+    } else {
+      // For guests, use provided email
+      emailRecipient = guestData?.email;
+    }
+
+    if (emailRecipient) {
+      sendOrderConfirmationToUser(emailRecipient, order)
+        .then(() => console.log(`✅ Email enviado a ${emailRecipient}`))
+        .catch(err => console.error(`❌ Error enviando email a ${emailRecipient}:`, err.message));
+    }
   }
-  sendOrderNotificationToAdmin(order).catch(console.error);
+  
+  // Populate usuario before sending admin notification
+  const populatedOrder = await Order.findById(order._id).populate('usuario');
+  
+  // Always notify admin (for both MP and WhatsApp)
+  sendOrderNotificationToAdmin(populatedOrder)
+    .then(() => console.log(`✅ Notificación admin enviada para orden ${order.codigo}`))
+    .catch(err => console.error(`❌ Error en notificación admin:`, err.message));
 
   return order;
 };
@@ -114,6 +157,28 @@ const getOrderById = async (id) => {
 const getOrderByCode = async (codigo) => {
   const order = await Order.findOne({ codigo: codigo.toUpperCase() }).populate('usuario', 'nombre apellido email');
   if (!order) throw Object.assign(new Error('Orden no encontrada.'), { statusCode: 404 });
+
+  // If order is pending with MP payment, check current status in MP
+  if (order.estadoPago === 'pendiente' && order.metodoPago === 'mercadopago' && order.mpPaymentId) {
+    try {
+      const MercadoPagoConfig = require('mercadopago').default;
+      const { Payment } = require('mercadopago');
+      
+      const client = new MercadoPagoConfig({ accessToken: process.env.MP_ACCESS_TOKEN });
+      const payment = new Payment(client);
+      
+      const paymentData = await payment.get({ id: order.mpPaymentId });
+      
+      if (paymentData.status === 'approved' && order.estadoPago !== 'aprobado') {
+        console.log(`✅ Actualizando orden ${order.codigo} a aprobado (verificado desde MP)`);
+        order.estadoPago = 'aprobado';
+        await order.save();
+      }
+    } catch (error) {
+      console.warn(`⚠️  No se pudo verificar estado en MP: ${error.message}`);
+    }
+  }
+
   return order;
 };
 
@@ -151,13 +216,26 @@ const finalizeOrder = async (id, force = false) => {
   const order = await Order.findById(id);
   if (!order) throw Object.assign(new Error('Orden no encontrada.'), { statusCode: 404 });
   if (order.stockDeducido) throw Object.assign(new Error('El stock de este pedido ya fue descontado.'), { statusCode: 400 });
-  if (order.estadoPago !== 'aprobado') {
-    throw Object.assign(new Error('El pedido debe tener pago aprobado para finalizar.'), { statusCode: 400 });
+
+  // Si es rechazado o cancelado: marcar como finalizado SIN deducir stock
+  if (order.estadoPago === 'rechazado' || order.estadoPago === 'cancelado') {
+    order.stockDeducido = true;
+    await order.save();
+    const populated = await Order.findById(order._id).populate('usuario', 'nombre apellido email');
+    return { order: populated, agotados: [], mensaje: `Pedido ${order.estadoPago} finalizado sin deducción de stock.` };
   }
+
+  // Para otros estados, requiere pago aprobado
+  if (order.estadoPago !== 'aprobado') {
+    throw Object.assign(new Error('El pedido debe tener pago aprobado, rechazado o cancelado para finalizar.'), { statusCode: 400 });
+  }
+
+  // Requiere estado de envío 'enviado' o 'entregado'
   if (order.estadoEnvio !== 'entregado' && order.estadoEnvio !== 'enviado') {
     throw Object.assign(new Error('El pedido debe estar en estado "enviado" o "entregado" para finalizar.'), { statusCode: 400 });
   }
 
+  // Deducir stock para pedidos aprobados
   for (const item of order.items) {
     const product = await Product.findById(item.producto);
     if (!product) continue;
@@ -188,6 +266,15 @@ const finalizeOrder = async (id, force = false) => {
   return { order: populated, agotados };
 };
 
+const updateProductStock = async (productId, newStock) => {
+  const product = await Product.findById(productId);
+  if (!product) throw Object.assign(new Error('Producto no encontrado.'), { statusCode: 404 });
+  const oldStock = product.stock;
+  product.stock = Math.max(0, newStock);
+  await product.save();
+  return { productId, oldStock, newStock: product.stock };
+};
+
 module.exports = {
   createOrder,
   getOrders,
@@ -196,4 +283,5 @@ module.exports = {
   updateOrderStatus,
   dispatchOrder,
   finalizeOrder,
+  updateProductStock,
 };

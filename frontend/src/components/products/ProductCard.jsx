@@ -35,12 +35,12 @@ const ProductCard = ({ product }) => {
   return (
     <Link to={`/productos/${product._id}`} className="card group cursor-pointer animate-fade-in">
       {/* Image */}
-      <div className="relative overflow-hidden aspect-square bg-gray-100">
+      <div className="relative overflow-hidden aspect-square bg-white">
         <img
           src={image}
           alt={product.nombre}
           loading="lazy"
-          className="w-full h-full object-cover transition-transform duration-500 group-hover:scale-110"
+          className="w-full h-full object-contain transition-transform duration-500 group-hover:scale-110"
         />
         {hasDiscount && (
           <span className="absolute top-2 left-2 badge bg-red-500 text-white font-bold text-xs px-2 py-1">

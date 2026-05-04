@@ -7,21 +7,51 @@ const createOrder = async (req, res, next) => {
     const { guestData, items, cuponCodigo, metodoPago } = req.body;
     const userId = req.user?._id || null;
 
+    console.log('\n╔════════════════════════════════════════╗');
+    console.log('║  Creating Order (POST /api/orders)      ║');
+    console.log('╚════════════════════════════════════════╝');
+    console.log('📦 Order data received:');
+    console.log(`   userId: ${userId}`);
+    console.log(`   authenticated: ${req.user ? 'YES' : 'NO'}`);
+    if (req.user) {
+      console.log(`   user email: ${req.user.email}`);
+    }
+    console.log(`   guestData: ${guestData ? 'YES' : 'NO'}`);
+    if (guestData) {
+      console.log(`     - nombre: ${guestData.nombre || 'N/A'}`);
+      console.log(`     - email: ${guestData.email || 'N/A'}`);
+      console.log(`     - telefono: ${guestData.telefono || 'N/A'}`);
+    }
+    console.log(`   items count: ${items ? items.length : 0}`);
+    console.log(`   cuponCodigo: ${cuponCodigo || 'NONE'}`);
+    console.log(`   metodoPago: ${metodoPago}`);
+
     if (!userId && (!guestData?.nombre || !guestData?.email)) {
+      console.error('❌ Validation failed: Missing userId and/or guestData');
       return res.status(400).json({ message: 'Datos del comprador requeridos.' });
     }
 
+    console.log('\n✅ Validation passed, creating order...');
     const order = await orderService.createOrder({ userId, guestData, items, cuponCodigo, metodoPago });
+    console.log(`✅ Order created: ${order._id}`);
+    console.log(`   Order code: ${order.codigo}`);
+    console.log(`   Total: ${order.total}`);
 
     let mpData = null;
     if (metodoPago === 'mercadopago') {
+      console.log(`\n💳 Creating Mercado Pago preference...`);
       const pref = await mercadopagoService.createPreference(order);
       mpData = { preferenceId: pref.id, initPoint: pref.init_point };
       await Order.findByIdAndUpdate(order._id, { mpPreferenceId: pref.id });
+      console.log(`✅ MP preference linked: ${pref.id}\n`);
     }
 
     res.status(201).json({ order, mpData });
   } catch (error) {
+    console.error('\n🔴 ERROR in createOrder:');
+    console.error(`   Message: ${error.message}`);
+    console.error(`   Type: ${error.name}`);
+    console.error(`   Stack: ${error.stack}\n`);
     next(error);
   }
 };
@@ -101,4 +131,41 @@ const deleteOrder = async (req, res, next) => {
   }
 };
 
-module.exports = { createOrder, getMyOrders, getOrderByCode, getAllOrders, updateOrder, dispatchOrder, finalizeOrder, deleteOrder };
+// Admin: Update product stock (after order finalized with negative stock)
+const updateProductStock = async (req, res, next) => {
+  try {
+    const { productId, newStock } = req.body;
+    if (newStock === undefined) {
+      return res.status(400).json({ message: 'newStock es requerido.' });
+    }
+    const result = await orderService.updateProductStock(productId, newStock);
+    res.json({ message: 'Stock actualizado.', result });
+  } catch (error) {
+    next(error);
+  }
+};
+
+// Check Mercado Pago payment status on return
+const checkMercadoPagoStatus = async (req, res, next) => {
+  try {
+    const { orderId, status } = req.query;
+
+    console.log(`\n📋 MP Callback recibido: orderId=${orderId}, status=${status}`);
+
+    if (!orderId) {
+      console.error('❌ Sin orderId');
+      return res.redirect(`${process.env.FRONTEND_URL}/orden/confirmacion?status=error&message=orderId-requerido`);
+    }
+
+    // Simply redirect - let webhook handle the payment verification and order update
+    // This callback is just for user feedback
+    console.log(`🔄 Redirigiendo usuario a confirmación...\n`);
+    res.redirect(`${process.env.FRONTEND_URL}/orden/confirmacion?status=${status}&order=${orderId}`);
+
+  } catch (error) {
+    console.error('❌ ERROR en checkMercadoPagoStatus:', error.message);
+    res.redirect(`${process.env.FRONTEND_URL}/orden/confirmacion?status=error`);
+  }
+};
+
+module.exports = { createOrder, getMyOrders, getOrderByCode, getAllOrders, updateOrder, dispatchOrder, finalizeOrder, deleteOrder, updateProductStock, checkMercadoPagoStatus };
