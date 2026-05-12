@@ -1,7 +1,5 @@
-import config from '../config/app';
-
 export const generateWhatsAppLink = (items, total, phone) => {
-  const number = phone || config.whatsappNumber;
+  const number = phone || import.meta.env.VITE_WHATSAPP_NUMBER || '5491100000000';
   const itemsList = items
     .map((i) => {
       const price = i.producto?.precioOferta || i.producto?.precio || i.precio;

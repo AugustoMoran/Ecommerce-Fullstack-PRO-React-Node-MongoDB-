@@ -2,11 +2,7 @@ const transporter = require('../config/mailer');
 
 const formatOrderItems = (items) => {
   return items
-    .map((i) => {
-      const attrs = [i.talla && `Talla: ${i.talla}`, i.color && `Color: ${i.color}`].filter(Boolean);
-      const attrStr = attrs.length ? ` (${attrs.join(', ')})` : '';
-      return `- ${i.nombre} x${i.cantidad}${attrStr} = $${(i.precio * i.cantidad).toFixed(2)}`;
-    })
+    .map((i) => `- ${i.nombre} x${i.cantidad} (Talla: ${i.talla}, Color: ${i.color}) = $${(i.precio * i.cantidad).toFixed(2)}`)
     .join('\n');
 };
 
@@ -24,7 +20,7 @@ const sendOrderConfirmationToUser = async (email, order) => {
   }[order.estadoPago] || order.estadoPago;
   
   await transporter.sendMail({
-    from: `"${process.env.STORE_NAME || 'Tienda Online'}" <${process.env.EMAIL_FROM}>`,
+    from: `"Tienda Online" <${process.env.EMAIL_FROM}>`,
     to: email,
     subject: `✅ Confirmación de pedido #${order.codigo}`,
     html: `
@@ -74,7 +70,7 @@ const sendOrderNotificationToAdmin = async (order) => {
 
 const sendShippingCodeEmail = async (email, order) => {
   await transporter.sendMail({
-    from: `"${process.env.STORE_NAME || 'Tienda Online'}" <${process.env.EMAIL_FROM}>`,
+    from: `"Tienda Online" <${process.env.EMAIL_FROM}>`,
     to: email,
     subject: `🚚 Tu pedido #${order.codigo} fue enviado`,
     html: `

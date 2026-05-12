@@ -1,6 +1,5 @@
 const jwt = require('jsonwebtoken');
 const User = require('../models/User');
-const logger = require('../utils/logger');
 
 /**
  * Middleware: verify access token from cookie (HTTP-only) or Authorization header.
@@ -16,10 +15,10 @@ const protect = async (req, res, next) => {
       const authHeader = req.headers.authorization;
       if (authHeader?.startsWith('Bearer ')) {
         token = authHeader.slice(7);
-        logger.debug('Token obtained from Authorization header (mobile fallback)');
+        console.log('🔐 Token obtenido del header Authorization (fallback móvil)');
       }
     } else {
-      logger.debug('Token obtained from HTTP-only cookie');
+      console.log('🔐 Token obtenido de cookie HTTP-only (seguro)');
     }
     
     if (!token) {
@@ -34,13 +33,13 @@ const protect = async (req, res, next) => {
     }
 
     req.user = user;
-    logger.debug('User authenticated', { email: user.email });
+    console.log('✅ Usuario autenticado:', user.email);
     next();
   } catch (error) {
     if (error.name === 'TokenExpiredError') {
       return res.status(401).json({ message: 'Token expirado.', code: 'TOKEN_EXPIRED' });
     }
-    logger.error('Auth error in protect', { message: error.message });
+    console.error('❌ Error en protect:', error.message);
     return res.status(401).json({ message: 'Token inválido.' });
   }
 };
@@ -65,22 +64,30 @@ const optionalAuth = async (req, res, next) => {
       const authHeader = req.headers.authorization;
       if (authHeader?.startsWith('Bearer ')) {
         token = authHeader.slice(7);
+        console.log('🔑 optionalAuth: ✅ Token en Authorization header');
       }
+    } else {
+      console.log('🔑 optionalAuth: ✅ Token en cookie');
     }
     
     if (!token) {
+      console.log('⚠️  optionalAuth: Sin token, continuando como guest');
       return next();
     }
 
     const decoded = jwt.verify(token, process.env.JWT_SECRET);
     
     const user = await User.findById(decoded.id).select('-password');
+    console.log('👤 Usuario encontrado:', user ? user.email : 'NO ENCONTRADO');
     
     if (user && user.isActive) {
       req.user = user;
+      console.log('✅ req.user asignado:', user.email);
+    } else {
+      console.log('❌ Usuario no activo o no encontrado');
     }
   } catch (err) {
-    logger.debug('optionalAuth: invalid/expired token, continuing as guest', { message: err.message });
+    console.error('❌ Error en optionalAuth:', err.message);
     // token invalid/expired - continue as guest
   }
   next();

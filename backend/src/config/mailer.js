@@ -1,5 +1,4 @@
 const nodemailer = require('nodemailer');
-const logger = require('../utils/logger');
 
 const transporter = nodemailer.createTransport({
   service: 'gmail',
@@ -11,9 +10,9 @@ const transporter = nodemailer.createTransport({
 
 transporter.verify((error) => {
   if (error) {
-    logger.warn('Mailer config error', { message: error.message });
+    console.warn('⚠️  Mailer config error:', error.message);
   } else {
-    logger.info('Mailer ready');
+    console.log('✅ Mailer ready');
   }
 });
 
